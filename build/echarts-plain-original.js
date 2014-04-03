@@ -36158,6 +36158,11 @@ define('echarts/chart/pie',['require','../component/base','./calculableBase','..
             var totalValue = 0;                  // 迭代累计
             var maxValue = Number.NEGATIVE_INFINITY;
 
+            //修正某些情况下饼图各块百分比相加不等于 100% 的情况
+            //将误差修正到占比最大的项上
+            var percentData = [];               //预先计算百分比
+            var maxValueIndex = 0;              //最大值索引
+
             // 计算需要显示的个数和总值
             for (var i = 0, l = data.length; i < l; i++) {
                 itemName = data[i].name;
@@ -36166,6 +36171,7 @@ define('echarts/chart/pie',['require','../component/base','./calculableBase','..
                 } else {
                     self.selectedMap[itemName] = true;
                 }
+
                 if (self.selectedMap[itemName] && !isNaN(data[i].value)) {
                     if (+data[i].value !== 0) {
                         totalSelected++;
@@ -36175,8 +36181,30 @@ define('echarts/chart/pie',['require','../component/base','./calculableBase','..
                     }
                     totalValue += +data[i].value;
                     maxValue = Math.max(maxValue, +data[i].value);
+                    if (maxValue == +data[i].value) {
+                        maxValueIndex = i;
+                    }
+
                 }
             }
+
+            var percentgap = 0.00;
+            for (var i = 0, l = data.length; i < l; i++) {
+                itemName = data[i].name;
+                if (!self.selectedMap[itemName]) {
+                    percentData.push("0.00");
+                    continue;
+                }
+                var p = data[i].value * 100 / totalValue;
+                p = p.toFixed(2);
+                if (i != maxValueIndex)
+                    percentgap = +p + percentgap;
+                percentData.push(p);
+            }   
+
+            percentgap = (+percentgap).toFixed(2);
+
+            percentData[maxValueIndex] = (100.00 - (+percentgap)).toFixed(2);
 
             var percent = 100;
             var lastPercent;    // 相邻细角度优化
@@ -36221,7 +36249,8 @@ define('echarts/chart/pie',['require','../component/base','./calculableBase','..
                         : (360 / l + startAngle);
                 }
                 endAngle = endAngle.toFixed(2) - 0;
-                percent = (percent * 100).toFixed(2);
+                //percent = (percent * 100).toFixed(2);
+                percent = percentData[i]; 
                 
                 radius = self.parseRadius(zr, serie.radius);
                 r0 = +radius[0];
@@ -37213,6 +37242,7 @@ define('echarts/chart/pie',['require','../component/base','./calculableBase','..
     
     return Pie;
 });
+
 define('_chart',['require','echarts/chart/scatter','echarts/chart/k','echarts/chart/radar','echarts/chart/chord','echarts/chart/force','echarts/chart/line','echarts/chart/bar','echarts/chart/pie'],function(require) {
     require("echarts/chart/scatter");
     require("echarts/chart/k");
