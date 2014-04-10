@@ -15974,6 +15974,33 @@ define('echarts/chart/island',['require','../component/base','./calculableBase',
                              ? ecData.get(shape, 'series').name
                              : '';
             var font = self.getFont(option.island.textStyle);
+            var formatter = self.deepQuery(
+                    [option],
+                    'tooltip.islandTitleFormatter'
+                    );
+            var formattedText = "";
+            if (typeof formatter == 'function') {
+                formattedText = formatter(value);
+            }
+            else if (typeof formatter == 'string') {
+                formatter = formatter.replace('{a}','{a0}')
+                    .replace('{b}','{b0}')
+                    .replace('{c}','{c0}');
+                formatter = formatter.replace(
+                        '{a0}', seriesName
+                        )
+                    .replace('{b0}', name)
+                    .replace(
+                            '{c0}',
+                            value instanceof Array
+                            ? value : self.numAddCommas(value)
+                            );
+                formattedText = formatter;
+            }
+            else{
+                formattedText = name + _valueConnector + value;
+            }
+
             var islandShape = {
                 shape : 'circle',
                 id : zr.newShapeId(self.type),
@@ -15983,7 +16010,7 @@ define('echarts/chart/island',['require','../component/base','./calculableBase',
                     y : shape.style.y,
                     r : option.island.r,
                     color : shape.style.color || shape.style.strokeColor,
-                    text : name + _valueConnector + value,
+                    text : formattedText, 
                     textFont : font
                 },
                 draggable : true,
@@ -16115,6 +16142,7 @@ define('echarts/chart/island',['require','../component/base','./calculableBase',
     
     return Island;
 });
+
 /**
  * echart组件库
  *
